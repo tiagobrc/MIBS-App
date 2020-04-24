@@ -22,6 +22,9 @@ fluidPage(
                   min = 0, max = 32, value = 1
       ),
       
+      checkboxInput("norm", "Collapse in-mouse clones?", value = TRUE, width = NULL),
+      
+      
       h4("Levenshtein distance controls:"),
       textInput("pattern", 
                 label = "Choose a pattern",
@@ -29,7 +32,7 @@ fluidPage(
                 width = NULL,
                 placeholder = NULL),
       
-      h6("Choose the V-Gene for subsetting. NULL for all V-Genes."),
+      h6("Choose the V-Gene for subsetting."),
       selectizeInput("vgene", 
                      label = "Choose a V-Gene",
                      choices = c('All V-Genes' = 'NULL', unique(final.db$VGENE)),
@@ -44,6 +47,7 @@ fluidPage(
                    choices = c("all","dynamic"),
                    selected = "all"),
       
+      checkboxInput("naive1", "Detach naive?", value = FALSE, width = NULL),
       
       #Download Plotly graphic
       
@@ -57,8 +61,8 @@ fluidPage(
     mainPanel(
       
       #n of clone.wells
-      textOutput("selected_var"),
-        
+      textOutput("text1"),
+      textOutput("text2"),  
       
       # Output: Histogram ----
       plotlyOutput(outputId = "distPlot"),
