@@ -17,7 +17,7 @@ fluidPage(
     
     # Sidebar panel for inputs ----
     sidebarPanel(
-     h5("Filter controls"),
+      h5("Filter controls"),
       sliderInput("readFilter", "Minimum read per sequence:",
                   min = 0, max = 1000, value = 5, step = 5
       ),
@@ -42,12 +42,12 @@ fluidPage(
                 value = "CAREGFAYW",
                 width = NULL,
                 placeholder = NULL),
-      
-      
-      
+
       radioButtons("radio.fm", "y-axis format",
-                   choices = c("counts","ratio","% of all clones in condition"),
+                   choices = c("counts","ratio"),
                    selected = "ratio"),
+      
+     # checkboxInput("total.perc", "Show percentage of total", value = FALSE),
       
       selectizeInput("selec.plotly", 
                      label = "Plot group:",
@@ -55,8 +55,6 @@ fluidPage(
                      selected = "All",
                      width = NULL),
       
-    
-
       
       #Download Plotly graphic
       
@@ -64,14 +62,12 @@ fluidPage(
       selectInput("selectplot", "Download plot", choices=list("Plot1.svg")),
       actionButton('download', "Download"),
       
-    
+      
       radioButtons("stats", "Statistical tests",
                    choices = c("Kruskal-Wallis"),
                    selected = "Kruskal-Wallis"),
-      actionButton('gime.stats', "Give me Stats!"),
       
-      
-      
+      actionButton('stats', "Run Kruskal-Wallis"),
       
     ),
     
@@ -104,15 +100,29 @@ fluidPage(
       
       DT::dataTableOutput('dtable'),
       
+      radioButtons("table.fmt", 
+                   label = "Table format",
+                   choices = c("Plain", "Histogram"),
+                   selected = "Histogram",
+                   width = NULL),
       
-      downloadButton('dhist', 'Download hist')
+      downloadButton('dhist', 'Download hist'),
       
       
-        
-
+      plotOutput(outputId = "boxp"),
       
+      # h4("Kruskal-Wallis rank sum test:"),
+      # 
+      # textOutput("stats1"),
+      # 
+      # h4("Pairwise Wilcox test:"),
+      # 
+      # DT::dataTableOutput('stats2'),
       
+      h4("Dunn (1964) Kruskal-Wallis multiple comparison:"),
       
+      DT::dataTableOutput('stats3'),
+      textOutput("warn")
     )
   )
 )
