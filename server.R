@@ -6,8 +6,12 @@ library(DT)
 library(FSA)
 library(MIBS)
 library(tidyr)
+library(Biostrings)
+library(bios2mds)
 library(dplyr)
 library(htmlwidgets)
+library(msaR)
+library(msa)
 
 
 # Define server logic required to draw a histogram ----
@@ -38,6 +42,40 @@ server <- function(input, output, session) {
     return(db.Filt)
   })
   
+  db.seqs <- reactive({
+    #Filtering reads
+    db.Filt <- selectedData$db %>% filter(READ.COUNTS.SUM >= input$readFilter2)
+    #Filtering CloneWells
+    cw <- db.Filt %>% count(CLONE_ID) %>% filter(n >= input$cloneWells2)
+    db.Filt <- db.Filt[db.Filt$CLONE_ID %in% cw[[1]],]
+    
+    #Filtering V genes
+    #subset options 
+    if(input$vgene2 != "NULL"){
+      db.Filt <- db.Filt %>% filter(VGENE == input$vgene2)
+    }else{
+      db.Filt <- db.Filt 
+    }
+    
+    if(input$jgene2 != "NULL"){
+      db.Filt <- db.Filt %>% filter(JGENE == input$jgene2)
+    }else{
+      db.Filt <- db.Filt 
+    }
+    
+    if(input$random != 0){
+      db.Filt <- db.Filt %>% sample_n(input$random)
+    }else{
+      db.Filt <- db.Filt 
+    }
+    
+    selectedData$dbseqs.df <- db.Filt
+    seqs <- db.Filt[["SEQUENCE_VDJ"]]
+    names(seqs) <- db.Filt[["SEQUENCE_ID"]]
+    return(seqs)
+    
+  })
+  
   #Options for groups
   opt1 <- reactive({
     colnames(selectedData$db)[unlist(lapply(selectedData$db, lv.up, min = 2, max = 88))]
@@ -47,6 +85,45 @@ server <- function(input, output, session) {
   opt2 <- reactive({
     unique(selectedData$db[["VGENE"]]) 
   })
+  
+  opt3 <- reactive({
+    unique(selectedData$db[["JGENE"]]) 
+  })
+ 
+  
+  
+  
+  hits <- reactive({
+    mindex <- vmatchPattern(pattern = input$pattern2, subject = selectedData$translated, min.mismatch = 0)
+    hits <- as(mindex, "CompressedIRangesList")
+    hits  
+  })
+  
+  
+  
+  
+df.bar  <- eventReactive(input$predict, {
+  
+  l <- input$lookahead
+  
+  flanks <- flank(hits(), width = l)  
+  
+  df <- as.data.frame(extractAt(selectedData$translated, flanks))
+  full <- full_join(selectedData$dbseqs.df, df, by = c("SEQUENCE_ID" = "group_name"))
+  
+  selectedData$missed <- table(is.na(full[["value"]]))[["TRUE"]]
+  selectedData$missed.df <- full %>% filter(is.na(full[["value"]])) %>% group_by(CLONE_ID) %>% count() %>% arrange(desc(n))
+  
+  
+  df.bar <- data.frame(Size = c(length(table(full[["JUNCTION_AA"]])), length(table(full[["value"]]))),
+                       Groups = c("Truth", "Sequenced"))
+  
+ df.bar
+  
+  
+ })
+  
+  
   
   #Histogram
   hist <- reactive({
@@ -86,7 +163,7 @@ server <- function(input, output, session) {
   #Update input selections
   observe({
     if (input$radio.db == "sulk1") {
-      selectedData$db <- get(input$radio.db)
+      selectedData$db <- MIBS::sulk1
     }
   })
   
@@ -106,6 +183,52 @@ server <- function(input, output, session) {
                          selected = "NULL",
                          server = FALSE)
   })
+  
+  observe({
+    
+    updateSelectizeInput(session, "vgene2",
+                         choices = c("All" = 'NULL', opt2()),
+                         selected = "NULL",
+                         server = FALSE)
+  })
+  
+  observe({
+    
+    updateSelectizeInput(session, "jgene2",
+                         choices = c("All" = 'NULL', opt3()),
+                         selected = "NULL",
+                         server = FALSE)
+  })
+  
+  proteins <- eventReactive(input$align.seq, {
+    set <- Biostrings::DNAStringSet(db.seqs())
+    set_subseqs <- lapply(1:3, function(pos) {subseq(c(set), start=pos)})
+    
+    # for(i in 1:3){
+    #   temp <- Biostrings::translate(set_subseqs[[i]], genetic.code = Biostrings::GENETIC_CODE)
+    #   st <- grep("\\*", set.jj3)
+    #   stops <- c(length(st), stops)
+    # }
+    suppressWarnings({ 
+      translated <- Biostrings::translate(set_subseqs[[2]], genetic.code = Biostrings::GENETIC_CODE)
+      })
+    
+    if(length(grep("\\*", translated)) != 0){
+      msa.translated <- msa(inputSeqs = translated[-grep("\\*", translated)], method = "ClustalOmega")
+      }
+   else{
+     msa.translated <- msa(inputSeqs = translated, method = "ClustalOmega")
+   }
+    
+    wd <- getwd()
+    file1 <- file.path(wd, "alignment.fa")
+    selectedData$translated <- translated
+    export.fasta(msaConvert(msa.translated, "bios2mds::align"), file1)
+    
+    proteins <- ape::read.FASTA(file.path(wd, "alignment.fa"), type="AA")
+    return(proteins)
+  })
+  
   
   
   #Dunn's test
@@ -127,6 +250,14 @@ server <- function(input, output, session) {
 
   ##########  Rendering  ##########
   
+  
+  output$df.barplot <- renderPlot({
+    
+    p <- ggplot(data=df.bar(), aes(x=Groups, y=Size, fill = Groups)) +
+      geom_bar(stat="identity")+ theme_minimal()
+    p
+    
+  })
   
   output$distPlot <- renderPlotly({
     #Plotly config
@@ -163,10 +294,23 @@ server <- function(input, output, session) {
     }
     
     distPlot1 <- distPlot1 %>%
-      layout(xaxis = xlab, yaxis = ylab, title = input$pattern, showlegend  = TRUE) %>% 
-      onRender(js)
+      layout(xaxis = xlab, yaxis = ylab, title = input$pattern, showlegend  = TRUE) 
     
   })
+  
+  output$vcount <- renderTable({
+    req(selectedData$translated)
+    df <- as.data.frame(table(vcountPattern(pattern = input$pattern2, subject = selectedData$translated)))
+    
+    colnames(df) <- c("Hits", "Number")
+    df
+  })
+  
+  renderText({
+    sprintf("The pattern is found n times in the aligned sequences:")
+  })
+  
+  
   
   output$boxp <- renderPlot({
     
@@ -181,7 +325,14 @@ server <- function(input, output, session) {
       return(p1)
     }
     
-  }) 
+  })
+  
+  
+  
+  
+  output$msa <- renderMsaR({
+    msaR(msa = proteins(), menu=T, overviewbox = F, seqlogo =T, colorscheme = "clustal")
+    })
   
   
   output$dtable <- renderDataTable({
@@ -204,10 +355,25 @@ server <- function(input, output, session) {
     }
   })
   
+  output$text3 <- renderText({ 
+    sprintf("You have selected %s sequences", length(db.seqs()))
+  })
+  
+  output$text4 <- renderText({ 
+    x <- sprintf("%s sequences were missed by the pattern priming.", selectedData$missed)
+    y <- sprintf("These %s sequences are grouped into %s clones", selectedData$missed, length(table(selectedData$missed.df[["CLONE_ID"]])))
+    return(c(x,y))
+  })
+  
+  output$missed.table <- renderDT({
+    selectedData$missed.df
+  })
+  
   output$warn <- renderText({ 
     if(input$table.fmt == "Histogram"){
       return(print("Choose the plain table for testing and make sure to melt data using Plot Group selection"))
-    }})
+    }
+    })
   
   
   ##########  Downloads  ##########
