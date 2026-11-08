@@ -3,3 +3,11 @@
 .RData
 .Ruserdata
 
+.DS_Store
+.RDataTmp
+# written at runtime by the Alignment tab
+alignment.fa
+# never publish raw / private exports
+private/
+*Private/
+rsconnect/
