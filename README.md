@@ -1,4 +1,4 @@
-# MIBS-app
+# MIBS-App
 
 A Shiny app for exploring Multiwell Incidence-based sequencing (MIBS) BCR
 datasets. It reads the `sulk1` dataset shipped with the
@@ -47,7 +47,7 @@ recovered in November 2026.
 ## Run
 
 ```r
-shiny::runApp("path/to/MIBS-app")
+shiny::runApp("path/to/MIBS-App")
 ```
 
 ## Known issues

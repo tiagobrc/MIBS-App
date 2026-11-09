@@ -6,7 +6,7 @@ min_mibs <- "0.0.0.9004"
 
 if (!requireNamespace("MIBS", quietly = TRUE) ||
     utils::packageVersion("MIBS") < min_mibs) {
-  stop("MIBS-app needs the MIBS package, version >= ", min_mibs, ".\n",
+  stop("MIBS-App needs the MIBS package, version >= ", min_mibs, ".\n",
        "Install or update it with:\n",
        "  remotes::install_github(\"victoraLab/MIBS@package-conversion\")",
        call. = FALSE)
