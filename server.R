@@ -220,12 +220,12 @@ df.bar  <- eventReactive(input$predict, {
      msa.translated <- msa(inputSeqs = translated, method = "ClustalOmega")
    }
     
-    wd <- getwd()
-    file1 <- file.path(wd, "alignment.fa")
+    file1 <- tempfile(fileext = ".fa")
     selectedData$translated <- translated
     export.fasta(msaConvert(msa.translated, "bios2mds::align"), file1)
-    
-    proteins <- ape::read.FASTA(file.path(wd, "alignment.fa"), type="AA")
+
+    proteins <- ape::read.FASTA(file1, type="AA")
+    unlink(file1)
     return(proteins)
   })
   
