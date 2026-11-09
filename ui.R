@@ -110,7 +110,6 @@ fluidPage(
     mainPanel(
       tabsetPanel(type = "tabs", id = "tabselected",
                   tabPanel("Levenshtein", value = 1,
-                           DTOutput('tbl01'),
                            #n of clone.wells
                            textOutput("text1"),
                            textOutput("text2"),  
