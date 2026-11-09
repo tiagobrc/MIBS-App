@@ -53,3 +53,7 @@ shiny::runApp("path/to/MIBS-app")
 ## Known issues
 
 - The database selector offers only `sulk1`; the upload box is commented out.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
