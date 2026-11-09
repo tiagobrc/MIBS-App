@@ -148,7 +148,7 @@ fluidPage(
                                         choices = c("Kruskal-Wallis"),
                                         selected = "Kruskal-Wallis"),
                            
-                           actionButton('stats', "Run Kruskal-Wallis"),
+                           actionButton('run_stats', "Run Kruskal-Wallis"),
                            DT::dataTableOutput('stats3'),
                            textOutput("warn")
                                        

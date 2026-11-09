@@ -52,6 +52,4 @@ shiny::runApp("path/to/MIBS-app")
 
 ## Known issues
 
-- `ui.R` defines two inputs with the same id `stats` (a radio button and an
-  action button), so they share one input value.
 - The database selector offers only `sulk1`; the upload box is commented out.

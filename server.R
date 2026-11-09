@@ -232,7 +232,7 @@ df.bar  <- eventReactive(input$predict, {
   
   
   #Dunn's test
-  observeEvent(eventExpr = input$stats,{
+  observeEvent(eventExpr = input$run_stats,{
     output$stats3 <- renderDT({
       
       if(input$table.fmt == "Plain"){
